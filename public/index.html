@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Math Quest 🧮</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Nunito', sans-serif; background: #1e1b4b; }
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&family=Fredoka+One&display=swap');
+    @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-15px)} }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+    @keyframes confetti-fall { 0%{top:-10%;opacity:1} 100%{top:110%;opacity:0} }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&family=Fredoka+One&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const WORLDS = [
+      { id:1, name:"Candy Kingdom", emoji:"🍭", grade:"Class 1", accent:"#f43f5e", bg:"linear-gradient(135deg,#f472b6,#f43f5e)", description:"Help the candy witch count her sweets!", questions:[
+        {q:"2 + 3 = ?",a:"5",choices:["4","5","6","7"],emoji:"🍬"},
+        {q:"5 - 2 = ?",a:"3",choices:["2","3","4","5"],emoji:"🍫"},
+        {q:"1 + 4 = ?",a:"5",choices:["3","4","5","6"],emoji:"🧁"},
+        {q:"6 - 3 = ?",a:"3",choices:["1","2","3","4"],emoji:"🍰"},
+        {q:"3 + 3 = ?",a:"6",choices:["5","6","7","8"],emoji:"🍭"},
+      ]},
+      { id:2, name:"Dino Jungle", emoji:"🦕", grade:"Class 2", accent:"#10b981", bg:"linear-gradient(135deg,#4ade80,#10b981)", description:"Count dino eggs with your prehistoric pals!", questions:[
+        {q:"4 + 7 = ?",a:"11",choices:["9","10","11","12"],emoji:"🥚"},
+        {q:"15 - 6 = ?",a:"9",choices:["7","8","9","10"],emoji:"🦴"},
+        {q:"3 x 4 = ?",a:"12",choices:["10","11","12","13"],emoji:"🌿"},
+        {q:"18 / 3 = ?",a:"6",choices:["4","5","6","7"],emoji:"🦕"},
+        {q:"9 + 8 = ?",a:"17",choices:["15","16","17","18"],emoji:"🦖"},
+      ]},
+      { id:3, name:"Ocean Deep", emoji:"🐠", grade:"Class 3", accent:"#0ea5e9", bg:"linear-gradient(135deg,#38bdf8,#0ea5e9)", description:"Dive deep and solve fishy math puzzles!", questions:[
+        {q:"6 x 7 = ?",a:"42",choices:["36","42","48","54"],emoji:"🐟"},
+        {q:"56 / 8 = ?",a:"7",choices:["5","6","7","8"],emoji:"🦀"},
+        {q:"45 + 37 = ?",a:"82",choices:["72","82","92","74"],emoji:"🐙"},
+        {q:"100 - 43 = ?",a:"57",choices:["47","53","57","63"],emoji:"🐬"},
+        {q:"9 x 8 = ?",a:"72",choices:["63","72","81","54"],emoji:"🐠"},
+      ]},
+      { id:4, name:"Space Station", emoji:"🚀", grade:"Class 4", accent:"#8b5cf6", bg:"linear-gradient(135deg,#a78bfa,#8b5cf6)", description:"Navigate the galaxy with math superpowers!", questions:[
+        {q:"234 + 178 = ?",a:"412",choices:["312","412","402","422"],emoji:"⭐"},
+        {q:"500 - 237 = ?",a:"263",choices:["253","263","273","283"],emoji:"🌙"},
+        {q:"12 x 15 = ?",a:"180",choices:["160","170","180","190"],emoji:"🚀"},
+        {q:"144 / 12 = ?",a:"12",choices:["10","11","12","13"],emoji:"🪐"},
+        {q:"25 x 25 = ?",a:"625",choices:["525","600","625","650"],emoji:"🌟"},
+      ]},
+      { id:5, name:"Dragon Castle", emoji:"🐉", grade:"Class 5", accent:"#f97316", bg:"linear-gradient(135deg,#fb923c,#f97316)", description:"Defeat the dragon with fraction magic!", questions:[
+        {q:"1/2 + 1/4 = ?",a:"3/4",choices:["1/2","3/4","1","2/3"],emoji:"🔥"},
+        {q:"0.5 x 6 = ?",a:"3",choices:["2","2.5","3","3.5"],emoji:"⚔️"},
+        {q:"25% of 80 = ?",a:"20",choices:["15","20","25","30"],emoji:"🛡️"},
+        {q:"2 x 2 x 2 = ?",a:"8",choices:["6","8","9","12"],emoji:"🐉"},
+        {q:"square root of 64 = ?",a:"8",choices:["6","7","8","9"],emoji:"🏰"},
+      ]},
+    ];
+
+    function Stars({count,max=3}){
+      return React.createElement('div',{style:{display:'flex',gap:2}},
+        Array.from({length:max}).map((_,i)=>React.createElement('span',{key:i,style:{fontSize:'1rem',filter:i<count?'none':'grayscale(1) opacity(0.25)'}},'⭐'))
+      );
+    }
+
+    function App(){
+      const [screen,setScreen]=useState('home');
+      const [allChildren,setAllChildren]=useState([]);
+      const [appMode,setAppMode]=useState('game');
+      const [worldIdx,setWorldIdx]=useState(null);
+      const [qIdx,setQIdx]=useState(0);
+      const [score,setScore]=useState(0);
+      const [lives,setLives]=useState(3);
+      const [chosen,setChosen]=useState(null);
+      const [feedback,setFeedback]=useState(null);
+      const [worldScores,setWorldScores]=useState({});
+      const [playerName,setPlayerName]=useState('');
+      const [nameInput,setNameInput]=useState('');
+      const [confetti,setConfetti]=useState(false);
+      const [shake,setShake]=useState(false);
+
+      const world = worldIdx!==null ? WORLDS[worldIdx] : null;
+      const question = world ? world.questions[qIdx] : null;
+
+      useEffect(()=>{
+        if(!playerName) return;
+        setAllChildren(prev=>{
+          const idx=prev.findIndex(c=>c.name===playerName);
+          if(idx===-1) return [...prev,{name:playerName,worldScores}];
+          const u=[...prev]; u[idx]={...u[idx],worldScores}; return u;
+        });
+      },[worldScores,playerName]);
+
+      function setName(n){
+        setPlayerName(n);
+        const ex=allChildren.find(c=>c.name===n);
+        setWorldScores(ex?ex.worldScores:{});
+      }
+
+      function startGame(i){
+        setWorldIdx(i);setQIdx(0);setScore(0);setLives(3);
+        setChosen(null);setFeedback(null);setScreen('game');
+      }
+
+      function answer(choice){
+        if(chosen!==null) return;
+        setChosen(choice);
+        const correct=choice===question.a;
+        setFeedback(correct?'correct':'wrong');
+        if(correct){setScore(s=>s+1);setConfetti(true);setTimeout(()=>setConfetti(false),1400);}
+        else{setLives(l=>l-1);setShake(true);setTimeout(()=>setShake(false),500);}
+        setTimeout(()=>{
+          const nq=qIdx+1, rl=correct?lives:lives-1;
+          if(nq>=world.questions.length||rl<=0){
+            const fs=correct?score+1:score;
+            const stars=fs>=5?3:fs>=3?2:fs>=1?1:0;
+            setWorldScores(ws=>({...ws,[worldIdx]:Math.max(ws[worldIdx]||0,stars)}));
+            setScore(fs);setScreen('done');
+          } else {setQIdx(nq);setChosen(null);setFeedback(null);}
+        },1200);
+      }
+
+      // PARENT
+      if(appMode==='parent'){
+        const [pin,setPin]=useState('');
+        const [unlocked,setUnlocked]=useState(false);
+        const [err,setErr]=useState(false);
+        if(!unlocked) return (
+          <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg,#0f172a,#1e293b)',padding:16}}>
+            <div style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:24,padding:32,width:'100%',maxWidth:340,textAlign:'center'}}>
+              <div style={{fontSize:48,marginBottom:16}}>🔐</div>
+              <div style={{fontFamily:'Fredoka One',fontSize:24,color:'#fff',marginBottom:8}}>Parent Dashboard</div>
+              <div style={{color:'#94a3b8',fontSize:14,marginBottom:24}}>Enter PIN to view progress</div>
+              <input type="password" maxLength={4} value={pin} onChange={e=>{setPin(e.target.value);setErr(false);}}
+                onKeyDown={e=>e.key==='Enter'&&(pin==='1234'?setUnlocked(true):setErr(true))}
+                style={{width:'100%',borderRadius:16,padding:'12px 16px',textAlign:'center',fontSize:22,fontWeight:900,outline:'none',marginBottom:12,letterSpacing:8,border:'none',background:err?'#fef2f2':'#fff',color:err?'#dc2626':'#1e1b4b',boxSizing:'border-box'}}
+                placeholder="• • • •" />
+              {err&&<div style={{color:'#f87171',fontSize:13,marginBottom:8}}>Wrong PIN. Try: 1234</div>}
+              <button onClick={()=>pin==='1234'?setUnlocked(true):setErr(true)}
+                style={{width:'100%',padding:'12px 0',borderRadius:16,fontWeight:900,color:'#fff',fontSize:18,border:'none',cursor:'pointer',background:'linear-gradient(135deg,#3b82f6,#6366f1)',marginBottom:8}}>
+                Unlock 🔓
+              </button>
+              <button onClick={()=>setAppMode('game')} style={{width:'100%',padding:'8px 0',borderRadius:16,color:'#94a3b8',fontWeight:700,fontSize:14,border:'none',cursor:'pointer',background:'transparent'}}>← Back</button>
+            </div>
+          </div>
+        );
+        const totalStars=allChildren.reduce((s,c)=>s+Object.values(c.worldScores||{}).reduce((a,b)=>a+b,0),0);
+        return (
+          <div style={{minHeight:'100vh',padding:16,background:'linear-gradient(135deg,#0f172a,#1e293b)'}}>
+            <div style={{maxWidth:480,margin:'0 auto'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24,paddingTop:8}}>
+                <button onClick={()=>setAppMode('game')} style={{color:'#94a3b8',fontWeight:700,fontSize:13,background:'rgba(255,255,255,0.1)',border:'none',borderRadius:12,padding:'6px 12px',cursor:'pointer'}}>← Back</button>
+                <div style={{fontFamily:'Fredoka One',fontSize:20,color:'#fff'}}>📊 Parent Dashboard</div>
+                <div style={{width:60}}/>
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:24}}>
+                {[{l:'Kids',v:allChildren.length,e:'👧'},{l:'Worlds',v:allChildren.reduce((s,c)=>s+Object.keys(c.worldScores||{}).filter(k=>(c.worldScores[k]||0)>=1).length,0),e:'🌍'},{l:'Stars',v:totalStars,e:'⭐'}].map(c=>(
+                  <div key={c.l} style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:16,padding:12,textAlign:'center'}}>
+                    <div style={{fontSize:24}}>{c.e}</div>
+                    <div style={{fontFamily:'Fredoka One',fontSize:24,color:'#fff'}}>{c.v}</div>
+                    <div style={{color:'#94a3b8',fontSize:12}}>{c.l}</div>
+                  </div>
+                ))}
+              </div>
+              {allChildren.length===0?(
+                <div style={{textAlign:'center',color:'#94a3b8',marginTop:64}}>
+                  <div style={{fontSize:48,marginBottom:12}}>🎮</div>
+                  <div style={{fontWeight:700}}>No players yet!</div>
+                </div>
+              ):allChildren.map((child,ci)=>{
+                const sc=child.worldScores||{};
+                const cs=Object.values(sc).reduce((s,v)=>s+v,0);
+                const pct=Math.round((cs/(WORLDS.length*3))*100);
+                return (
+                  <div key={ci} style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:24,padding:20,marginBottom:16}}>
+                    <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:16}}>
+                      <div style={{width:48,height:48,borderRadius:16,display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,background:'linear-gradient(135deg,#3b82f6,#8b5cf6)',color:'#fff',fontWeight:900}}>{child.name[0].toUpperCase()}</div>
+                      <div style={{flex:1}}>
+                        <div style={{fontFamily:'Fredoka One',fontSize:18,color:'#fff'}}>{child.name}</div>
+                        <div style={{color:'#94a3b8',fontSize:13}}>{cs}/{WORLDS.length*3} stars</div>
+                      </div>
+                      <div style={{fontFamily:'Fredoka One',fontSize:22,color:'#facc15'}}>{cs}⭐</div>
+                    </div>
+                    <div style={{width:'100%',background:'rgba(255,255,255,0.2)',borderRadius:99,height:8,overflow:'hidden',marginBottom:16}}>
+                      <div style={{height:'100%',borderRadius:99,width:pct+'%',background:'#3b82f6',transition:'width 0.5s'}}/>
+                    </div>
+                    {WORLDS.map((w,wi)=>{
+                      const ws=sc[wi]||0;
+                      return (
+                        <div key={wi} style={{display:'flex',alignItems:'center',gap:12,borderRadius:12,padding:10,background:ws>0?'rgba(255,255,255,0.1)':'transparent',marginBottom:4,opacity:ws>0||wi===0||(sc[wi-1]||0)>=1?1:0.4}}>
+                          <span style={{fontSize:20}}>{w.emoji}</span>
+                          <div style={{flex:1}}>
+                            <div style={{color:'#fff',fontWeight:700,fontSize:14}}>{w.name}</div>
+                            <div style={{color:'#94a3b8',fontSize:12}}>{w.grade}</div>
+                          </div>
+                          {ws>0?<Stars count={ws} max={3}/>:<span style={{fontSize:12,color:'#64748b'}}>{wi===0||(sc[wi-1]||0)>=1?'Not started':'🔒'}</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      }
+
+      // HOME
+      if(screen==='home') return (
+        <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:16,background:'linear-gradient(135deg,#1e1b4b,#312e81,#4c1d95)'}}>
+          {confetti&&<div style={{position:'fixed',inset:0,pointerEvents:'none',overflow:'hidden',zIndex:50}}>
+            {Array.from({length:20}).map((_,i)=><div key={i} style={{position:'absolute',left:(i*37)%100+'%',top:'-10%',fontSize:'1.4rem',animation:`confetti-fall ${1+i%3*0.4}s ${i%6*0.1}s forwards`}}>{['⭐','🎉','✨','🌟','💫'][i%5]}</div>)}
+          </div>}
+          <button onClick={()=>setAppMode('parent')} style={{position:'fixed',top:16,right:16,background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.2)',borderRadius:16,padding:'8px 14px',color:'#fff',fontWeight:700,fontSize:14,cursor:'pointer',zIndex:10}}>👨‍👩‍👧 Parent</button>
+          <div style={{textAlign:'center',marginBottom:32}}>
+            <div style={{fontSize:72,animation:'bounce 1.5s infinite'}}>🧮</div>
+            <div style={{fontFamily:'Fredoka One',fontSize:48,color:'#fff',textShadow:'0 4px 20px rgba(139,92,246,0.8)'}}>Math Quest</div>
+            <div style={{color:'#c4b5fd',fontSize:18,fontWeight:700}}>Adventure for Classes 1–5 ✨</div>
+          </div>
+          {!playerName?(
+            <div style={{background:'rgba(255,255,255,0.1)',borderRadius:24,padding:24,width:'100%',maxWidth:360,textAlign:'center',border:'1px solid rgba(255,255,255,0.2)'}}>
+              <div style={{color:'#fff',fontWeight:700,fontSize:18,marginBottom:16}}>What's your name, adventurer? 🧙</div>
+              <input style={{width:'100%',borderRadius:16,padding:'12px 16px',textAlign:'center',color:'#312e81',fontWeight:700,fontSize:18,outline:'none',marginBottom:16,boxSizing:'border-box',border:'none'}}
+                placeholder="Enter your name..." value={nameInput}
+                onChange={e=>setNameInput(e.target.value)}
+                onKeyDown={e=>e.key==='Enter'&&nameInput.trim()&&setName(nameInput.trim())}/>
+              <button onClick={()=>nameInput.trim()&&setName(nameInput.trim())}
+                style={{width:'100%',padding:'12px 0',borderRadius:16,fontWeight:900,color:'#fff',fontSize:18,border:'none',cursor:'pointer',background:'linear-gradient(135deg,#f43f5e,#8b5cf6)'}}>
+                Let's Go! 🚀
+              </button>
+            </div>
+          ):(
+            <div style={{width:'100%',maxWidth:480}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                <div style={{color:'#fde68a',fontWeight:700}}>Welcome, <span style={{color:'#fff'}}>{playerName}</span>! 🌍</div>
+                <button onClick={()=>{setPlayerName('');setNameInput('');setWorldScores({});}} style={{fontSize:12,color:'#94a3b8',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:12,padding:'4px 10px',cursor:'pointer'}}>Switch</button>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                {WORLDS.map((w,i)=>{
+                  const stars=worldScores[i]||0;
+                  const unlocked=i===0||(worldScores[i-1]||0)>=1;
+                  return (
+                    <button key={w.id} onClick={()=>unlocked&&startGame(i)}
+                      style={{borderRadius:16,padding:16,display:'flex',alignItems:'center',gap:16,cursor:unlocked?'pointer':'not-allowed',opacity:unlocked?1:0.5,background:unlocked?`linear-gradient(135deg,${w.accent}33,${w.accent}66)`:'rgba(255,255,255,0.08)',border:`2px solid ${unlocked?w.accent:'rgba(255,255,255,0.13)'}`,transition:'transform 0.1s'}}>
+                      <span style={{fontSize:40}}>{w.emoji}</span>
+                      <div style={{flex:1,textAlign:'left'}}>
+                        <div style={{fontFamily:'Fredoka One',fontSize:18,color:'#fff'}}>{w.name}</div>
+                        <div style={{color:'rgba(255,255,255,0.6)',fontSize:12}}>{w.grade} • {w.description}</div>
+                        <Stars count={stars} max={3}/>
+                      </div>
+                      <span style={{fontSize:22}}>{unlocked?'▶️':'🔒'}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+
+      // GAME
+      if(screen==='game'&&world&&question) return (
+        <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',padding:16,background:world.bg}}>
+          {confetti&&<div style={{position:'fixed',inset:0,pointerEvents:'none',overflow:'hidden',zIndex:50}}>
+            {Array.from({length:20}).map((_,i)=><div key={i} style={{position:'absolute',left:(i*37)%100+'%',top:'-10%',fontSize:'1.4rem',animation:`confetti-fall ${1+i%3*0.4}s ${i%6*0.1}s forwards`}}>{['⭐','🎉','✨'][i%3]}</div>)}
+          </div>}
+          <div style={{width:'100%',maxWidth:480,marginBottom:16}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+              <button onClick={()=>setScreen('home')} style={{color:'#fff',fontWeight:700,background:'rgba(255,255,255,0.2)',border:'none',borderRadius:12,padding:'4px 12px',cursor:'pointer'}}>← Exit</button>
+              <span style={{fontFamily:'Fredoka One',color:'#fff',fontSize:18}}>{world.name} {world.emoji}</span>
+              <span style={{fontSize:18}}>{Array.from({length:3}).map((_,i)=>i<lives?'❤️':'🖤').join('')}</span>
+            </div>
+            <div style={{width:'100%',background:'rgba(255,255,255,0.3)',borderRadius:99,height:10,overflow:'hidden'}}>
+              <div style={{height:'100%',borderRadius:99,width:(qIdx/world.questions.length*100)+'%',background:world.accent,transition:'width 0.5s'}}/>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',color:'rgba(255,255,255,0.8)',fontSize:12,marginTop:4}}>
+              <span>Q {qIdx+1}/{world.questions.length}</span><span>Score: {score} ⭐</span>
+            </div>
+          </div>
+          <div style={{width:'100%',maxWidth:480,background:'#fff',borderRadius:24,padding:24,marginBottom:20,textAlign:'center',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',animation:shake?'shake 0.4s ease':'none'}}>
+            <div style={{fontSize:56,marginBottom:8}}>{question.emoji}</div>
+            <div style={{color:'#9ca3af',fontWeight:700,fontSize:14,marginBottom:4}}>Solve this! 🧠</div>
+            <div style={{fontFamily:'Fredoka One',fontSize:48,color:'#1e1b4b',marginBottom:8}}>{question.q}</div>
+            {feedback==='correct'&&<div style={{color:'#16a34a',fontWeight:900,fontSize:20}}>🎉 Correct! Amazing!</div>}
+            {feedback==='wrong'&&<div style={{color:'#dc2626',fontWeight:900,fontSize:18}}>😅 Oops! Answer: {question.a}</div>}
+          </div>
+          <div style={{width:'100%',maxWidth:480,display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            {question.choices.map((choice,i)=>{
+              let bg='#fff',border='2px solid transparent',tc='#1e1b4b';
+              if(chosen!==null){
+                if(choice===question.a){bg='#dcfce7';border='2px solid #4ade80';tc='#15803d';}
+                else if(choice===chosen){bg='#fee2e2';border='2px solid #f87171';tc='#dc2626';}
+              }
+              return <button key={i} onClick={()=>answer(choice)} style={{background:bg,color:tc,borderRadius:16,padding:'20px 0',fontSize:32,fontFamily:'Fredoka One',fontWeight:900,border,cursor:'pointer',boxShadow:'0 4px 12px rgba(0,0,0,0.15)'}}>{choice}</button>;
+            })}
+          </div>
+        </div>
+      );
+
+      // DONE
+      if(screen==='done'&&world){
+        const fs=score;
+        const stars=fs>=world.questions.length?3:fs>=Math.ceil(world.questions.length/2)?2:fs>=1?1:0;
+        const medals=['🎮','🥉','🥈','🥇'];
+        return (
+          <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24,background:world.bg}}>
+            <div style={{position:'fixed',inset:0,pointerEvents:'none',overflow:'hidden',zIndex:50}}>
+              {Array.from({length:20}).map((_,i)=><div key={i} style={{position:'absolute',left:(i*37)%100+'%',top:'-10%',fontSize:'1.4rem',animation:`confetti-fall ${1+i%3*0.4}s ${i%6*0.1}s forwards`}}>{['⭐','🎉','✨','🌟'][i%4]}</div>)}
+            </div>
+            <div style={{background:'#fff',borderRadius:24,padding:32,textAlign:'center',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',width:'100%',maxWidth:360,zIndex:1}}>
+              <div style={{fontSize:72,marginBottom:12}}>{medals[stars]}</div>
+              <div style={{fontFamily:'Fredoka One',fontSize:32,color:'#1e1b4b',marginBottom:4}}>{fs>=world.questions.length?'PERFECT! 🏆':fs>=3?'Great Job! 🥳':'Keep Trying! 💪'}</div>
+              <div style={{color:'#9ca3af',marginBottom:12}}>{world.name} Complete!</div>
+              <div style={{display:'flex',justifyContent:'center',marginBottom:16}}><Stars count={stars} max={3}/></div>
+              <div style={{background:'#f9fafb',borderRadius:16,padding:16,marginBottom:20}}>
+                <div style={{fontFamily:'Fredoka One',fontSize:40,color:'#1e1b4b'}}>{fs}/{world.questions.length}</div>
+                <div style={{color:'#9ca3af',fontSize:14}}>Correct Answers</div>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                <button onClick={()=>startGame(worldIdx)} style={{padding:'12px 0',borderRadius:16,fontWeight:900,color:'#fff',fontSize:18,border:'none',cursor:'pointer',background:`linear-gradient(135deg,${world.accent},#8b5cf6)`}}>🔁 Play Again</button>
+                <button onClick={()=>setScreen('home')} style={{padding:'12px 0',borderRadius:16,fontWeight:900,color:'#fff',fontSize:18,border:'none',cursor:'pointer',background:'#9ca3af'}}>🌍 World Map</button>
+                <button onClick={()=>setAppMode('parent')} style={{padding:'8px 0',borderRadius:16,fontWeight:700,color:'#6b7280',fontSize:14,border:'1px solid #e5e7eb',cursor:'pointer',background:'transparent'}}>👨‍👩‍👧 Parent Dashboard</button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return null;
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+  </script>
+</body>
+</html>
